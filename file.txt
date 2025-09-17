@@ -1,0 +1,231 @@
+
+"""
+Вот все шаги что я проделал
+ШАГ 1:
+команда netstat -ano | findstr :64342 выдала:
+TCP 127.0.0.1:64342 0.0.0.0:0  LISTENING    8016
+ввел команду Invoke-WebRequest http://127.0.0.1:64342/sse -Method GET -Headers @{"Accept"="text/event-stream"} -TimeoutSec 3
+ответа нет как и ожидлалось ответ повис
+
+ШАГ 2:
+(.venv) PS C:\Users\79968\PycharmProjects\RewriteFromDjangoToFastApi> $env:IJ_MCP_SERVER_PORT = "64342"
+(.venv) PS C:\Users\79968\PycharmProjects\RewriteFromDjangoToFastApi>
+(.venv) PS C:\Users\79968\PycharmProjects\RewriteFromDjangoToFastApi> $py = "C:\Program Files\JetBrains\PyCharm 2025.2.1.1"
+(.venv) PS C:\Users\79968\PycharmProjects\RewriteFromDjangoToFastApi> $java = Join-Path $py "jbr\bin\java.exe"
+(.venv) PS C:\Users\79968\PycharmProjects\RewriteFromDjangoToFastApi> $frontend = Join-Path $py "plugins\mcpserver\lib\mcpserver-frontend.jar"
+(.venv) PS C:\Users\79968\PycharmProjects\RewriteFromDjangoToFastApi> # util-джар иногда меняет имя; возьмём любой util*.jar из lib
+(.venv) PS C:\Users\79968\PycharmProjects\RewriteFromDjangoToFastApi> $util = (Get-ChildItem (Join-Path $py "lib") -Filter "util*.jar" | Select-Object -First 1).FullName
+(.venv) PS C:\Users\79968\PycharmProjects\RewriteFromDjangoToFastApi>
+(.venv) PS C:\Users\79968\PycharmProjects\RewriteFromDjangoToFastApi> "java      : " + (Test-Path $java)
+java      : True
+(.venv) PS C:\Users\79968\PycharmProjects\RewriteFromDjangoToFastApi> "frontend  : " + (Test-Path $frontend)
+frontend  : True
+(.venv) PS C:\Users\79968\PycharmProjects\RewriteFromDjangoToFastApi> "util jar  : " + (Test-Path $util)
+util jar  : True
+(.venv) PS C:\Users\79968\PycharmProjects\RewriteFromDjangoToFastApi>
+(.venv) PS C:\Users\79968\PycharmProjects\RewriteFromDjangoToFastApi> $cp = "$frontend;$util"
+(.venv) PS C:\Users\79968\PycharmProjects\RewriteFromDjangoToFastApi>
+(.venv) PS C:\Users\79968\PycharmProjects\RewriteFromDjangoToFastApi> # апустим и захватим stderr/stdout (если есть)
+(.venv) PS C:\Users\79968\PycharmProjects\RewriteFromDjangoToFastApi> & $java -classpath $cp com.intellij.mcpserver.stdio.McpStdioRunnerKt 2>&1 | Tee-Object -Variable runnerOut
+
+ШАГ 3:
+конфиг:
+model = "gpt-5-codex"
+[mcp_servers.pycharm]
+command = "C:\\Program Files\\JetBrains\\PyCharm 2025.2.1.1\\jbr\\bin\\java.exe"
+args = [
+  "-classpath",
+  "C:\\Program Files\\JetBrains\\PyCharm 2025.2.1.1\\plugins\\mcpserver\\lib\\mcpserver-frontend.jar;C:\\Program Files\\JetBrains\\PyCharm 2025.2.1.1\\lib\\util-8.jar",
+  "com.intellij.mcpserver.stdio.McpStdioRunnerKt"
+]
+
+[mcp_servers.pycharm.env]
+IJ_MCP_SERVER_PORT = "64342"
+
+ШАГ 4:
+перезапустил и все такая же ошибка
+
+ШАГ 5:
+создал mcp-wrapper.bat
+добавил команду в config.toml
+command = "C:\\Users\\79968\\mcp-wrapper.bat"
+и все такая же ошибка
+
+
+"""
+
+"""
+Шаг A.
+файл mcp-wrapper.log создался
+[16.09.2025 19:32:24,00] WRAPPER STARTED, PORT=64342
+
+ШАГ B.
+codex /status
+╭────────────────────────────────────────────────────────╮
+│ >_ OpenAI Codex (v0.36.0)                              │
+│                                                        │
+│ model:     gpt-5-codex   /model to change              │
+│ directory: ~\PycharmProjects\RewriteFromDjangoToFastApi│
+╰────────────────────────────────────────────────────────╯
+
+  To get started, describe a task or try one of these commands:
+
+  /init - create an AGENTS.md file with instructions for Codex
+  /status - show current session configuration
+  /approvals - choose what Codex can do without approval
+  /model - choose what model and reasoning effort to use
+
+▌ /status
+
+■ MCP client for `pycharm` failed to start: request timed out
+
+  Working (11s • Esc to interrupt)
+
+▌ Explain this codebase
+
+⏎ send   Ctrl+J newline   Ctrl+T transcript   Ctrl+C quit
+
+не понял когда вводить или я должен это видеть после ввода codex/status
+Get-Process java -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, StartTime
+
+Шаг C.
+выключил firewall ошибка осталась
+
+Шаг D.
+(.venv) PS C:\Users\79968\PycharmProjects\RewriteFromDjangoToFastApi> (Get-ChildItem "C:\Program Files\JetBrains\PyCharm 2025.2.1.1\lib" -Filter "util*.jar").FullName
+C:\Program Files\JetBrains\PyCharm 2025.2.1.1\lib\util-8.jar
+C:\Program Files\JetBrains\PyCharm 2025.2.1.1\lib\util.jar
+C:\Program Files\JetBrains\PyCharm 2025.2.1.1\lib\util_rt.jar
+выдало 3 пути, мне как их в config указать
+
+ШАГ E.
+Файл конфига выглядит так:
+[mcp_servers.pycharm]
+command = "C:\\Program Files\\JetBrains\\PyCharm 2025.2.1.1\\jbr\\bin\\java.exe"
+args = [
+  "-classpath",
+  "C:\\Program Files\\JetBrains\\PyCharm 2025.2.1.1\\plugins\\mcpserver\\lib\\mcpserver-frontend.jar;C:\\Program Files\\JetBrains\\PyCharm 2025.2.1.1\\lib\\util-8.jar",
+  "com.intellij.mcpserver.stdio.McpStdioRunnerKt"
+]
+
+[mcp_servers.pycharm.env]
+IJ_MCP_SERVER_PORT = "64342"
+
+"""
+
+
+"""
+ШАГ 1.
+указал все три файла ошибка не изменилась
+
+ШАГ 2.
+запустил Codex вне виртуального окружения ошибка не изменилась
+
+ШАГ 3.
+$env:IJ_MCP_SERVER_PORT="64342"
+& "C:\Program Files\JetBrains\PyCharm 2025.2.1.1\jbr\bin\java.exe" -classpath "C:\Program Files\JetBrains\PyCharm 2025.2.1.1\plugins\mcpserver\lib\mcpserver-frontend.jar;C:\Program Files\JetBrains\PyCharm 2025.2.1.1\lib\util-8.jar;C:\Program Files\JetBrains\PyCharm 2025.2.1.1\lib\util.jar;C:\Program Files\JetBrains\PyCharm 2025.2.1.1\lib\util_rt.jar" com.intellij.mcpserver.stdio.McpStdioRunnerKt
+
+ШАГ 4:
+написал лог
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+set LOG=C:\Users\79968\mcp-wrapper.log
+
+echo.>>"%LOG%"
+echo [------- %DATE% %TIME% -------] >>"%LOG%"
+echo WRAPPER STARTED, PORT=%IJ_MCP_SERVER_PORT% >>"%LOG%"
+
+rem Покажем версию java
+"C:\Program Files\JetBrains\PyCharm 2025.2.1.1\jbr\bin\java.exe" -version 1>>"%LOG%" 2>&1
+
+rem Запускаем раннер и ЛОГИРУЕМ ЕГО ВЫВОД (stderr и stdout)
+"C:\Program Files\JetBrains\PyCharm 2025.2.1.1\jbr\bin\java.exe" ^
+  -classpath "C:\Program Files\JetBrains\PyCharm 2025.2.1.1\plugins\mcpserver\lib\mcpserver-frontend.jar;C:\Program Files\JetBrains\PyCharm 2025.2.1.1\lib\util-8.jar;C:\Program Files\JetBrains\PyCharm 2025.2.1.1\lib\util.jar;C:\Program Files\JetBrains\PyCharm 2025.2.1.1\lib\util_rt.jar" ^
+  com.intellij.mcpserver.stdio.McpStdioRunnerKt 1>>"%LOG%" 2>&1
+
+set ERR=%ERRORLEVEL%
+echo JAVA EXIT CODE: !ERR! >>"%LOG%"
+
+rem Задержка, чтобы процесс был виден в Get-Process, если нужно
+timeout /t 5 >nul
+
+endlocal
+
+ЛОГ выдает
+[------- 16.09.2025 20:34:13,01 -------]
+WRAPPER STARTED, PORT=64342
+openjdk version "21.0.8" 2025-07-15
+OpenJDK Runtime Environment JBR-21.0.8+1-1038.68-jcef (build 21.0.8+1-b1038.68)
+OpenJDK 64-Bit Server VM JBR-21.0.8+1-1038.68-jcef (build 21.0.8+1-b1038.68, mixed mode, sharing)
+Exception in thread "DefaultDispatcher-worker-1" java.io.IOException: Unable to establish loopback connection
+	at java.base/sun.nio.ch.PipeImpl$Initializer.run(PipeImpl.java:103)
+	at java.base/sun.nio.ch.PipeImpl$Initializer.run(PipeImpl.java:67)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:571)
+	at java.base/sun.nio.ch.PipeImpl.<init>(PipeImpl.java:197)
+	at java.base/sun.nio.ch.WEPollSelectorImpl.<init>(WEPollSelectorImpl.java:79)
+	at java.base/sun.nio.ch.WEPollSelectorProvider.openSelector(WEPollSelectorProvider.java:33)
+	at io.ktor.network.selector.ActorSelectorManager$1.invokeSuspend(ActorSelectorManager.kt:40)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.internal.SoftLimitedDispatcher$Worker.run(SoftLimitedDispatcher.kt:130)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:613)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:1183)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:778)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:765)
+	Suppressed: kotlinx.coroutines.internal.DiagnosticCoroutineContextException: [CoroutineName(selector), StandaloneCoroutine{Cancelling}@3356f1b4, Dispatchers.IO]
+Caused by: java.net.SocketException: Unrecognized Windows Sockets error: 10106: socket
+	at java.base/sun.nio.ch.Net.socket0(Native Method)
+	at java.base/sun.nio.ch.Net.serverSocket(Net.java:544)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.<init>(ServerSocketChannelImpl.java:135)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.<init>(ServerSocketChannelImpl.java:116)
+	at java.base/sun.nio.ch.SelectorProviderImpl.openServerSocketChannel(SelectorProviderImpl.java:72)
+	at java.base/java.nio.channels.ServerSocketChannel.open(ServerSocketChannel.java:145)
+	at java.base/sun.nio.ch.PipeImpl.createListener(PipeImpl.java:229)
+	at java.base/sun.nio.ch.PipeImpl$Initializer$LoopbackConnector.run(PipeImpl.java:127)
+	at java.base/sun.nio.ch.PipeImpl$Initializer.run(PipeImpl.java:85)
+	... 14 more
+Exception in thread "main" io.ktor.client.plugins.sse.SSEClientException: Unrecognized Windows Sockets error: 10106: socket
+	at io.ktor.client.plugins.sse.BuildersKt.mapToSSEException(builders.kt:1114)
+	at io.ktor.client.plugins.sse.BuildersKt.access$mapToSSEException(builders.kt:1)
+	at io.ktor.client.plugins.sse.BuildersKt$serverSentEventsSession-i8z2VEo$$inlined$processSession-rp2poPw$1.invokeSuspend(builders.kt:1098)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:98)
+	at kotlinx.coroutines.internal.SoftLimitedDispatcher$Worker.run(SoftLimitedDispatcher.kt:130)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:613)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:1183)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:778)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:765)
+Caused by: java.net.SocketException: Unrecognized Windows Sockets error: 10106: socket
+	at java.base/sun.nio.ch.Net.socket0(Native Method)
+	at java.base/sun.nio.ch.Net.socket(Net.java:534)
+	at java.base/sun.nio.ch.SocketChannelImpl.<init>(SocketChannelImpl.java:153)
+	at java.base/sun.nio.ch.SocketChannelImpl.<init>(SocketChannelImpl.java:136)
+	at java.base/sun.nio.ch.SelectorProviderImpl.openSocketChannel(SelectorProviderImpl.java:77)
+	at io.ktor.network.sockets.ConnectUtilsJvmKt.openSocketChannelFor(ConnectUtilsJvm.kt:43)
+	at io.ktor.network.sockets.ConnectUtilsJvmKt.tcpConnect(ConnectUtilsJvm.kt:16)
+	at io.ktor.network.sockets.TcpSocketBuilder.connect(TcpSocketBuilder.kt:48)
+	at io.ktor.client.engine.cio.ConnectionFactory.connect(ConnectionFactory.kt:30)
+	at io.ktor.client.engine.cio.Endpoint$connect$2$connect$1.invokeSuspend(Endpoint.kt:209)
+	at io.ktor.client.engine.cio.Endpoint$connect$2$connect$1.invoke(Endpoint.kt)
+	at io.ktor.client.engine.cio.Endpoint$connect$2$connect$1.invoke(Endpoint.kt)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturnIgnoreTimeout(Undispatched.kt:56)
+	at kotlinx.coroutines.TimeoutKt.setupTimeout(Timeout.kt:149)
+	at kotlinx.coroutines.TimeoutKt.withTimeoutOrNull(Timeout.kt:105)
+	at io.ktor.client.engine.cio.Endpoint.connect(Endpoint.kt:217)
+	at io.ktor.client.engine.cio.Endpoint.makeDedicatedRequest(Endpoint.kt:100)
+	at io.ktor.client.engine.cio.Endpoint.execute(Endpoint.kt:65)
+	at io.ktor.client.engine.cio.CIOEngine.execute(CIOEngine.kt:80)
+	at io.ktor.client.engine.HttpClientEngine$executeWithinCallContext$2.invokeSuspend(HttpClientEngine.kt:183)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	... 6 more
+JAVA EXIT CODE: 1
+
+
+
+
+
+
+"""

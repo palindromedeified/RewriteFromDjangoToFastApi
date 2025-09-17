@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Войти{% endblock %}
+
+{% block content %}
+<style>
+    .auth-form {
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        padding: 24px;
+        max-width: 400px;
+    }
+
+    .auth-form label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+    }
+
+    .auth-form input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        margin-bottom: 16px;
+        font-size: 16px;
+    }
+
+    .auth-form button {
+        background: #2563eb;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 18px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .auth-form button:hover {
+        background: #1d4ed8;
+    }
+
+    .auth-message {
+        background: #fef3c7;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 24px;
+        color: #92400e;
+        font-weight: 500;
+    }
+
+    .auth-error {
+        background: #fee2e2;
+        color: #b91c1c;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 16px;
+        font-weight: 600;
+    }
+
+    .auth-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .link-button {
+        display: inline-block;
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .link-button.primary {
+        background: #2563eb;
+        color: #ffffff;
+    }
+
+    .link-button.secondary {
+        background: #e5e7eb;
+        color: #1f2937;
+    }
+</style>
+
+<section>
+    <h1>Вход в личный кабинет</h1>
+    <p>Авторизуйтесь, чтобы получать персональные подборки кофе, специальные предложения и управлять подписками.</p>
+</section>
+
+{% if error %}
+    <div class="auth-error">{{ error }}</div>
+{% endif %}
+
+{% if info %}
+    <div class="auth-message">{{ info }}</div>
+    <div class="auth-actions">
+        <a class="link-button primary" href="{{ url_for('home') }}">На главную</a>
+        <a class="link-button secondary" href="{{ url_for('logout') }}">Выйти</a>
+    </div>
+{% else %}
+    <form method="post" class="auth-form">
+        <label for="username">Имя пользователя</label>
+        <input id="username" name="username" type="text" required>
+
+        <label for="password">Пароль</label>
+        <input id="password" name="password" type="password" required>
+
+        <button type="submit">Войти</button>
+        <p style="margin-top: 12px; font-size: 14px;">Еще нет аккаунта? <a href="{{ url_for('register') }}">Зарегистрируйтесь</a>.</p>
+    </form>
+{% endif %}
+{% endblock %}
